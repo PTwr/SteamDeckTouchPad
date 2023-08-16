@@ -2,7 +2,7 @@
 
 Very simple python script to use SteamDeck touchscreen (absolute positioning) as touchpad (relative positioning).
 
-Requires xinput and evdev.
+No pemanent configuration changes requires, just some easily reinstalable packages. Which is good, as SteamOS update might wipe custom stuff away.
 
 # Features
 
