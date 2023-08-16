@@ -2,7 +2,7 @@
 
 Very simple python script to use SteamDeck touchscreen (absolute positioning) as touchpad (relative positioning).
 
-No pemanent configuration changes requires, just some easily reinstalable packages. Which is good, as SteamOS update might wipe custom stuff away.
+No pemanent configuration changes required, just some easily reinstalable packages. Which is good, as SteamOS update might wipe custom stuff away.
 
 Works when built-in screen is disabled.
 
@@ -60,12 +60,12 @@ Enable default handler
 
 `xinput ensable "FTS3528:00 2808:1015"`
 
-#Requirements
-[python3](https://wiki.archlinux.org/title/Python) 'cos thats what this is written in (`pacman -S python`)
-[xinput](https://wiki.archlinux.org/title/Xinput) to install python packages (`pacman -S python-pip`)
-[evdev](https://github.com/gvalkov/python-evdev) to read raw touchscreen events (`pip evdev`)
-[pynput](https://github.com/moses-palmer/pynput) to simulate mouse events (`pip pynput`)
-[xinput](https://wiki.archlinux.org/title/Xinput) for troubleshooting and optional automation (`pacman -S xinput`)
+Requirements
+- [python3](https://wiki.archlinux.org/title/Python) 'cos thats what this is written in (`pacman -S python`)
+- [pip](https://wiki.archlinux.org/title/Xinput) to install python packages (`pacman -S python-pip`)
+- [evdev](https://github.com/gvalkov/python-evdev) to read raw touchscreen events (`pip evdev`)
+- [pynput](https://github.com/moses-palmer/pynput) to simulate mouse events (`pip pynput`)
+- [xinput](https://wiki.archlinux.org/title/Xinput) for troubleshooting and optional automation (`pacman -S xinput`)
 
 If script is ran as superuser (`sudo`) then python packages will need to be installed as such as well.
 
@@ -88,7 +88,7 @@ Games that will probably not work:
 - Shooters, be it 2D or 3D. Good aiming requires cursor capture/lock and/or raw input. Neither of which will work with userland script.
 - Games with 3D camera. For same reason as shooters.
 - Games running in exclusive (true) fullscreen.
-- Games with anti-cheat/anti-bot, as it uses same techniques as bad bots do
+- Games with anti-cheat/anti-bot, as it uses same techniques as bad bots do.
 
 Games that will probably work:
 - Simple adventure point-and-click
