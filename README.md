@@ -4,6 +4,8 @@ Very simple python script to use SteamDeck touchscreen (absolute positioning) as
 
 No pemanent configuration changes requires, just some easily reinstalable packages. Which is good, as SteamOS update might wipe custom stuff away.
 
+Works when built-in screen is disabled.
+
 # Features
 
 Turns crappy touchscreen experience into slightly less crappy big glowing touchpad.
@@ -19,12 +21,15 @@ Working
 TODO
 - click&drag (text selection, icon dragging)
 - customization of speed, sensitivity, long press delay, etc.
+- gestures for scroll
 
 # Required privileges
 
 Either `sudo` or some chmoding on `/dev/input` as touchscreen device is root-only by default
 
 # Limitations
+
+Not tested in Game Mode. Only in Desktop.
 
 As userland app it won't be detected by lower level stuff.
 
@@ -75,3 +80,24 @@ Followed by
 
 If you want to restore safeguards
 
+# Game Compatibility
+
+Script is made for desktop experience, so only games using mouse like desktop does will work fine.
+
+Games that will probably not work:
+- Shooters, be it 2D or 3D. Good aiming requires cursor capture/lock and/or raw input. Neither of which will work with userland script.
+- Games with 3D camera. For same reason as shooters.
+- Games running in exclusive (true) fullscreen.
+- Games with anti-cheat/anti-bot, as it uses same techniques as bad bots do
+
+Games that will probably work:
+- Simple adventure point-and-click
+- Strategy games
+- Windowed/borderless without cursor capture
+
+Confirmed working games
+- [XCOM EW](https://store.steampowered.com/app/225340/XCOM_Enemy_Within/)
+- [Civilization 5](https://store.steampowered.com/app/8930/Sid_Meiers_Civilization_V/)
+
+Confirmed broken games
+- [Crimsonland](https://store.steampowered.com/app/262830/Crimsonland/) (standard shooter aiming issues with fake mouse)
