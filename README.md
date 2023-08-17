@@ -2,7 +2,9 @@
 
 Very simple python script to use SteamDeck touchscreen (absolute positioning) as touchpad (relative positioning).
 
-Requires xinput and evdev.
+No pemanent configuration changes required, just some easily reinstalable packages. Which is good, as SteamOS update might wipe custom stuff away.
+
+Works when built-in screen is disabled.
 
 # Features
 
@@ -19,12 +21,15 @@ Working
 TODO
 - click&drag (text selection, icon dragging)
 - customization of speed, sensitivity, long press delay, etc.
+- gestures for scroll
 
 # Required privileges
 
 Either `sudo` or some chmoding on `/dev/input` as touchscreen device is root-only by default
 
 # Limitations
+
+Not tested in Game Mode. Only in Desktop.
 
 As userland app it won't be detected by lower level stuff.
 
@@ -55,12 +60,12 @@ Enable default handler
 
 `xinput ensable "FTS3528:00 2808:1015"`
 
-#Requirements
-[python3](https://wiki.archlinux.org/title/Python) 'cos thats what this is written in (`pacman -S python`)
-[xinput](https://wiki.archlinux.org/title/Xinput) to install python packages (`pacman -S python-pip`)
-[evdev](https://github.com/gvalkov/python-evdev) to read raw touchscreen events (`pip evdev`)
-[pynput](https://github.com/moses-palmer/pynput) to simulate mouse events (`pip pynput`)
-[xinput](https://wiki.archlinux.org/title/Xinput) for troubleshooting and optional automation (`pacman -S xinput`)
+Requirements
+- [python3](https://wiki.archlinux.org/title/Python) 'cos thats what this is written in (`pacman -S python`)
+- [pip](https://wiki.archlinux.org/title/Xinput) to install python packages (`pacman -S python-pip`)
+- [evdev](https://github.com/gvalkov/python-evdev) to read raw touchscreen events (`pip evdev`)
+- [pynput](https://github.com/moses-palmer/pynput) to simulate mouse events (`pip pynput`)
+- [xinput](https://wiki.archlinux.org/title/Xinput) for troubleshooting and optional automation (`pacman -S xinput`)
 
 If script is ran as superuser (`sudo`) then python packages will need to be installed as such as well.
 
@@ -75,3 +80,24 @@ Followed by
 
 If you want to restore safeguards
 
+# Game Compatibility
+
+Script is made for desktop experience, so only games using mouse like desktop does will work fine.
+
+Games that will probably not work:
+- Shooters, be it 2D or 3D. Good aiming requires cursor capture/lock and/or raw input. Neither of which will work with userland script.
+- Games with 3D camera. For same reason as shooters.
+- Games running in exclusive (true) fullscreen.
+- Games with anti-cheat/anti-bot, as it uses same techniques as bad bots do.
+
+Games that will probably work:
+- Simple adventure point-and-click
+- Strategy games
+- Windowed/borderless without cursor capture
+
+Confirmed working games
+- [XCOM EW](https://store.steampowered.com/app/225340/XCOM_Enemy_Within/)
+- [Civilization 5](https://store.steampowered.com/app/8930/Sid_Meiers_Civilization_V/)
+
+Confirmed broken games
+- [Crimsonland](https://store.steampowered.com/app/262830/Crimsonland/) (standard shooter aiming issues with fake mouse)
