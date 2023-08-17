@@ -17,6 +17,8 @@ Working
 - Single left click
 - Double left click (through native OS handling)
 - Right click (hold press)
+- click&drag (text selection, icon dragging)
+- customization of speed, sensitivity, long press delay, etc.
 
 TODO
 - click&drag (text selection, icon dragging)
@@ -47,6 +49,29 @@ Just run it:
 `python touch.py`
 
 Then kill script if you want to restore default behavior
+
+## Config
+
+```options:
+  -h, --help            show this help message and exit
+  -s seconds, --shortPressSeconds seconds
+                        Time required to activate Short Press action in seconds. (default: 0.2)
+  -l seconds, --longPressSeconds seconds
+                        Time required to activate Long Press action in seconds. (default: 0.4)
+  -D, --disableDrag     Disables LMB drag mode which occurs after LMB has been pressed for shortPressSeconds. (default: False)
+  -L {OnHold,OnRelease}, --leftClickMode {OnHold,OnRelease}
+                        Controlls whether LMB click occurs after timer or after releasing finger. (default: OnRelease)
+  -R {OnHold,OnRelease}, --rightClickMode {OnHold,OnRelease}
+                        Controlls whether RMB click occurs after timer or after releasing finger. (default: OnHold)
+  -m delta, --movementMinDelta delta
+                        Minimum distance per tick to invoke mouse movement, increase to compensate for unsteady fingers. (default: 0.0)
+  -v multiplier, --movementVelocity multiplier
+                        Multiplier for mouse speed. Increase to compensate for high resolution screen. (default: 2.0)
+  -T prefix, --touchscreenDeviceNamePrefix prefix
+                        Prefix for touchscreen device to query /dev/input/event* for. (default: FTS3528)
+  -P suffix, --penDeviceNameSuffix suffix
+                        Suffix for touchscreen pen device to ignore while querying /dev/input/event*. (default: UNKNOWN)```
+
 
 # Overriding default touchscreen handling
 
