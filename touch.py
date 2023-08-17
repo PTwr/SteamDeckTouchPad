@@ -19,36 +19,106 @@
 #evtest /dev/input/event5
 #xinput test "FTS3528:00 2808:1015"
 
+import os
+import evdev
+import argparse
 from enum import Enum
+from pynput import mouse, keyboard
+
 class ClickMode(Enum):
   OnHold = 1
   OnRelease = 2
-  OnMovement = 3
 
+  @classmethod
+  def from_string(cls, str):
+    match str:
+      case "OnHold":
+        return ClickMode.OnHold
+      case "OnRelease":
+        return ClickMode.OnRelease
+      case _:
+        raise Exception("Unknown value: "+str)
+  @classmethod
+  def to_string(cls):
+    match cls:
+      case ClickMode.OnHold:
+        return "OnHold"
+      case ClickMode.OnRelease:
+        return "OnRelease"
+      case _:
+        raise Exception("Unknown value: "+str)
+
+# default config
 movementMinDelta = 0
 movementScale = 2
 longPressSeconds = 1
-rightHoldSeconds = longPressSeconds/2
-leftHoldSeconds = longPressSeconds/4
-
+shortPressSeconds = longPressSeconds/2
 leftClickMode = ClickMode.OnRelease
 rightClickMode = ClickMode.OnHold
 leftDragEnabled = True
+#on my SD it was "FTS3528:00 2808:1015" but it might not be same on every machine
+touchscreenDeviceName = "FTS3528:00 2808:1015";
+#so we better find by mask
+touchscreenDeviceNamePrefix = "FTS3528"
+penDeviceNameSuffix = "UNKNOWN" #pen handler shares device name with touchscreen
 
-import os
+def CLI(): 
+  #TODO refactor this crap into some config object
+  global movementMinDelta, movementScale, longPressSeconds, shortPressSeconds, leftClickMode, rightClickMode, leftDragEnabled, touchscreenDeviceName, touchscreenDeviceNamePrefix, penDeviceNameSuffix
+
+  parser = argparse.ArgumentParser(description="Steamdeck Touchpad",
+                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+  parser.add_argument("-s", "--shortPressSeconds", metavar = "seconds", type = float, default = 0.2, 
+    help = "Time required to activate Short Press action in seconds.")
+  parser.add_argument("-l", "--longPressSeconds", metavar = "seconds", type = float, default = 0.4, 
+    help = "Time required to activate Long Press action in seconds.")
+
+  parser.add_argument("-D", "--disableDrag", action = "store_true", default = False, 
+    help = "Disables LMB drag mode which occurs after LMB has been pressed for shortPressSeconds.")
+  parser.add_argument("-L", "--leftClickMode", choices=['OnHold', 'OnRelease'], default = 'OnRelease', 
+    help = "Controlls whether LMB click occurs after timer or after releasing finger.")
+  parser.add_argument("-R", "--rightClickMode", choices=['OnHold', 'OnRelease'], default = 'OnHold', 
+    help = "Controlls whether RMB click occurs after timer or after releasing finger.")
+
+  parser.add_argument("-m", "--movementMinDelta", metavar = "delta", type = float, default = 0.0, 
+    help = "Minimum distance per tick to invoke mouse movement, increase to compensate for unsteady fingers.")
+  parser.add_argument("-v", "--movementVelocity", metavar = "multiplier", type = float, default = 2.0, 
+    help = "Multiplier for mouse speed. Increase to compensate for high resolution screen.")
+
+  parser.add_argument("-T", "--touchscreenDeviceNamePrefix", metavar = "prefix", default = "FTS3528", 
+    help = "Prefix for touchscreen device to query /dev/input/event* for.")
+  parser.add_argument("-P", "--penDeviceNameSuffix", metavar = "suffix", default = "UNKNOWN", 
+    help = "Suffix for touchscreen pen device to ignore while querying /dev/input/event*.")
+  
+  args = parser.parse_args()
+  config = vars(args)
+  print(config)
+
+  shortPressSeconds = config["shortPressSeconds"]
+  longPressSeconds = config["longPressSeconds"]
+
+  leftDragEnabled = not config["disableDrag"]
+  leftClickMode = ClickMode.from_string(config["leftClickMode"])
+  rightClickMode = ClickMode.from_string(config["rightClickMode"])
+
+  movementMinDelta = config["movementMinDelta"]
+  movementVelocity = config["movementVelocity"]
+
+  touchscreenDeviceNamePrefix = config["touchscreenDeviceNamePrefix"]
+  penDeviceNameSuffix = config["penDeviceNameSuffix"]
+
+CLI()
 
 def DisableTouchscreen():
-  print('Disabling default touchscreen handling')
-  os.system('xinput disable "FTS3528:00 2808:1015"')
+  print(f'Disabling default touchscreen handling for {touchscreenDeviceName}')
+  os.system(f'xinput disable "{touchscreenDeviceName}"')
 
-import evdev
-from pynput import mouse, keyboard
+def EnableTouchscreen():
+  print(f'Enabling default touchsceen handling for {touchscreenDeviceName}')
+  os.system(f'xinput enable "{touchscreenDeviceName}"')
+
 def TouchscreenAsTouchpad():
-
-  deviceName = "FTS3528:00 2808:1015" #might not be same on every Steamdeck
-  #so we better find by mask
-  wantedDeviceNamePrefix = "FTS3528"
-  unwantedDeviceNameSuffix = "UNKNOWN" #pen handler
 
   lastX = None
   lastY = None
@@ -61,10 +131,11 @@ def TouchscreenAsTouchpad():
 
   #try to locate /dev/input/event[id] without hardocidng device name or id
   devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
-  device = next((d for d in devices if (d.name.startswith(wantedDeviceNamePrefix) and not d.name.endswith(unwantedDeviceNameSuffix))), None)
-
+  device = next((d for d in devices if (d.name.startswith(touchscreenDeviceNamePrefix) and not d.name.endswith(penDeviceNameSuffix))), None)
+  touchscreenDeviceName = device.name
+  
   if device is None:
-    print("Device ", deviceName, " not found. Terminating.")
+    print("Touchscreen device not found. Terminating.")
     return
 
   DisableTouchscreen()
@@ -80,10 +151,10 @@ def TouchscreenAsTouchpad():
         
     #check if any holdPress is enabled
     if holding and not hasMovedAfterPress:
-      if (leftClickMode == ClickMode.OnHold) and (timeElapsed > leftHoldSeconds):
+      if (leftClickMode == ClickMode.OnHold) and (timeElapsed > shortPressSeconds):
         m.click(mouse.Button.left, 1)
         holding = False
-      if (rightClickMode == ClickMode.OnHold) and (timeElapsed > rightHoldSeconds):
+      if (rightClickMode == ClickMode.OnHold) and (timeElapsed > longPressSeconds):
         m.click(mouse.Button.right, 1)
         holding = False
 
@@ -120,8 +191,7 @@ def TouchscreenAsTouchpad():
         lastY = event.value
         if (diffY > movementMinDelta) or (diffY < -movementMinDelta):
           
-          if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > leftHoldSeconds):
-            print("Starting left drag")
+          if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > shortPressSeconds):
             draging = True
             m.press(mouse.Button.left)
 
@@ -135,18 +205,12 @@ def TouchscreenAsTouchpad():
         lastX = event.value
         if (diffX > movementMinDelta) or (diffX < -movementMinDelta):
           
-          if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > leftHoldSeconds):
-            print("Starting left drag")
+          if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > shortPressSeconds):
             draging = True
             m.press(mouse.Button.left)
 
           hasMovedAfterPress = True
           m.move(diffX*movementScale, 0)
-          
-
-def EnableTouchscreen():
-  print('Enabling default touchsceen handling')
-  os.system('xinput enable "FTS3528:00 2808:1015"')
 
 try:
   TouchscreenAsTouchpad()
