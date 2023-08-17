@@ -19,29 +19,57 @@
 #evtest /dev/input/event5
 #xinput test "FTS3528:00 2808:1015"
 
+from enum import Enum
+class ClickMode(Enum):
+  OnHold = 1
+  OnRelease = 2
+  OnMovement = 3
+
+movementMinDelta = 0
+movementScale = 2
+longPressSeconds = 1
+rightHoldSeconds = longPressSeconds/2
+leftHoldSeconds = longPressSeconds/4
+
+leftClickMode = ClickMode.OnRelease
+rightClickMode = ClickMode.OnHold
+leftDragEnabled = True
 
 import os
-print('Disabling default touchscreen handling')
-os.system('xinput disable "FTS3528:00 2808:1015"')
+
+def DisableTouchscreen():
+  print('Disabling default touchscreen handling')
+  os.system('xinput disable "FTS3528:00 2808:1015"')
 
 import evdev
 from pynput import mouse, keyboard
-def EvDevParser():
-  movementMinDelta = 0
-  movementScale = 1.5
-  longPressSeconds = 1
+def TouchscreenAsTouchpad():
+
+  deviceName = "FTS3528:00 2808:1015" #might not be same on every Steamdeck
+  #so we better find by mask
+  wantedDeviceNamePrefix = "FTS3528"
+  unwantedDeviceNameSuffix = "UNKNOWN" #pen handler
 
   lastX = None
   lastY = None
   diffX = 0
   diffY = 0
   holding = False
+  draging = False
   hasMovedAfterPress = False
   lastPressSec = 0
+
+  #try to locate /dev/input/event[id] without hardocidng device name or id
+  devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
+  device = next((d for d in devices if (d.name.startswith(wantedDeviceNamePrefix) and not d.name.endswith(unwantedDeviceNameSuffix))), None)
+
+  if device is None:
+    print("Device ", deviceName, " not found. Terminating.")
+    return
+
+  DisableTouchscreen()
   m = mouse.Controller()
 
-  devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
-  device = next(d for d in devices if d.name == "FTS3528:00 2808:1015")
   print(device)
   print(device.capabilities(verbose=True))
 
@@ -49,63 +77,85 @@ def EvDevParser():
     
     eventTimestampt = event.sec + event.usec/1000000
     timeElapsed = eventTimestampt - lastPressSec
-
-    #TODO drag selection
-    #TODO hold-and-drag
+        
+    #check if any holdPress is enabled
+    if holding and not hasMovedAfterPress:
+      if (leftClickMode == ClickMode.OnHold) and (timeElapsed > leftHoldSeconds):
+        m.click(mouse.Button.left, 1)
+        holding = False
+      if (rightClickMode == ClickMode.OnHold) and (timeElapsed > rightHoldSeconds):
+        m.click(mouse.Button.right, 1)
+        holding = False
 
     if (event.type == 1) & (event.code == 330): #BTN_TOUCH
-      # rest delta tracking
+      # reset delta tracking
       lastX = None
       lastY = None
         
       # start tracking
       if (event.value == 1): #down (press)
+
         holding = True
         lastPressSec = eventTimestampt
         hasMovedAfterPress = False
 
-      # left click
       if (event.value == 0) and holding: #up (release)
         
         if (not hasMovedAfterPress):
-          if (timeElapsed > longPressSeconds):
+          if (timeElapsed > longPressSeconds) and (rightClickMode == ClickMode.OnRelease):
             m.click(mouse.Button.right, 1)
-          else:
+          elif leftClickMode == ClickMode.OnRelease:
             m.click(mouse.Button.left, 1)
 
+        if holding:
+          m.release(mouse.Button.left)
         holding = False
-        lastX = None
-        lastY = None
+        draging = False
 
     # SD touchscreen is physically a vertical screen, rotated left, so coords are swapped
-    if (event.type == 3) and (event.code == 0) and holding: #ABS_X
-      #print('Ypos = ',event.value)
-      diffY = 0 if not lastY else (event.value - lastY)
-      lastY = event.value
-      if (diffY > movementMinDelta) or (diffY < -movementMinDelta):
-        hasMovedAfterPress = True
-        m.move(0,-diffY*movementScale)
+    if (event.type == 3):
+      if (event.code == 0) and holding: #ABS_X
+        #print('Ypos = ',event.value)
+        diffY = 0 if not lastY else (event.value - lastY)
+        lastY = event.value
+        if (diffY > movementMinDelta) or (diffY < -movementMinDelta):
+          
+          if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > leftHoldSeconds):
+            print("Starting left drag")
+            draging = True
+            m.press(mouse.Button.left)
 
-    if (event.type == 3) and (event.code == 1) and holding: #ABS_X
-      #print('Xpos = ',event.value)
-      diffX = 0 if not lastX else (event.value - lastX)
-      lastX = event.value
-      if (diffX > movementMinDelta) or (diffX < -movementMinDelta):
-        hasMovedAfterPress = True
-        m.move(diffX*movementScale, 0)
+          hasMovedAfterPress = True
+          m.move(0,-diffY*movementScale)
 
-def exit_handler():
+    if (event.type == 3):
+      if (event.code == 1) and holding: #ABS_X
+        #print('Xpos = ',event.value)
+        diffX = 0 if not lastX else (event.value - lastX)
+        lastX = event.value
+        if (diffX > movementMinDelta) or (diffX < -movementMinDelta):
+          
+          if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > leftHoldSeconds):
+            print("Starting left drag")
+            draging = True
+            m.press(mouse.Button.left)
+
+          hasMovedAfterPress = True
+          m.move(diffX*movementScale, 0)
+          
+
+def EnableTouchscreen():
   print('Enabling default touchsceen handling')
   os.system('xinput enable "FTS3528:00 2808:1015"')
 
 try:
-  EvDevParser()
+  TouchscreenAsTouchpad()
 except KeyboardInterrupt:
-    exit_handler()
+    EnableTouchscreen()
 raise
 
 
 import atexit
 
 
-atexit.register(exit_handler)
+atexit.register(EnableTouchscreen)
