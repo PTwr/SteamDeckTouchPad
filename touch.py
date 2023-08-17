@@ -61,10 +61,14 @@ touchscreenDeviceName = "FTS3528:00 2808:1015";
 #so we better find by mask
 touchscreenDeviceNamePrefix = "FTS3528"
 penDeviceNameSuffix = "UNKNOWN" #pen handler shares device name with touchscreen
+LMB = mouse.Button.left
+RMB = mouse.Button.right
 
 def CLI(): 
   #TODO refactor this crap into some config object
-  global movementMinDelta, movementScale, longPressSeconds, shortPressSeconds, leftClickMode, rightClickMode, leftDragEnabled, touchscreenDeviceName, touchscreenDeviceNamePrefix, penDeviceNameSuffix
+  global movementMinDelta, movementScale, longPressSeconds, shortPressSeconds, leftClickMode, rightClickMode, leftDragEnabled
+  global touchscreenDeviceName, touchscreenDeviceNamePrefix, penDeviceNameSuffix
+  global LMB, RMB
 
   parser = argparse.ArgumentParser(description="Steamdeck Touchpad",
                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -74,6 +78,8 @@ def CLI():
   parser.add_argument("-l", "--longPressSeconds", metavar = "seconds", type = float, default = 0.4, 
     help = "Time required to activate Long Press action in seconds.")
 
+  parser.add_argument("-M", "--mirrorButtons", action = "store_true", default = False, 
+    help = "Switches LMB and RMB behavior")
   parser.add_argument("-D", "--disableDrag", action = "store_true", default = False, 
     help = "Disables LMB drag mode which occurs after LMB has been pressed for shortPressSeconds.")
   parser.add_argument("-L", "--leftClickMode", choices=['OnHold', 'OnRelease'], default = 'OnRelease', 
@@ -93,7 +99,6 @@ def CLI():
   
   args = parser.parse_args()
   config = vars(args)
-  print(config)
 
   shortPressSeconds = config["shortPressSeconds"]
   longPressSeconds = config["longPressSeconds"]
@@ -108,15 +113,11 @@ def CLI():
   touchscreenDeviceNamePrefix = config["touchscreenDeviceNamePrefix"]
   penDeviceNameSuffix = config["penDeviceNameSuffix"]
 
+  if config["mirrorButtons"]:
+    LMB = mouse.Button.right
+    RMB = mouse.Button.left
+
 CLI()
-
-def DisableTouchscreen():
-  print(f'Disabling default touchscreen handling for {touchscreenDeviceName}')
-  os.system(f'xinput disable "{touchscreenDeviceName}"')
-
-def EnableTouchscreen():
-  print(f'Enabling default touchsceen handling for {touchscreenDeviceName}')
-  os.system(f'xinput enable "{touchscreenDeviceName}"')
 
 def TouchscreenAsTouchpad():
 
@@ -138,11 +139,12 @@ def TouchscreenAsTouchpad():
     print("Touchscreen device not found. Terminating.")
     return
 
-  DisableTouchscreen()
   m = mouse.Controller()
 
-  print(device)
-  print(device.capabilities(verbose=True))
+  #print(device)
+  #print(device.capabilities(verbose=True))
+
+  device.grab()
 
   for event in device.read_loop():
     
@@ -152,10 +154,10 @@ def TouchscreenAsTouchpad():
     #check if any holdPress is enabled
     if holding and not hasMovedAfterPress:
       if (leftClickMode == ClickMode.OnHold) and (timeElapsed > shortPressSeconds):
-        m.click(mouse.Button.left, 1)
+        m.click(LMB, 1)
         holding = False
       if (rightClickMode == ClickMode.OnHold) and (timeElapsed > longPressSeconds):
-        m.click(mouse.Button.right, 1)
+        m.click(RMB, 1)
         holding = False
 
     if (event.type == 1) & (event.code == 330): #BTN_TOUCH
@@ -174,12 +176,12 @@ def TouchscreenAsTouchpad():
         
         if (not hasMovedAfterPress):
           if (timeElapsed > longPressSeconds) and (rightClickMode == ClickMode.OnRelease):
-            m.click(mouse.Button.right, 1)
+            m.click(RMB, 1)
           elif leftClickMode == ClickMode.OnRelease:
-            m.click(mouse.Button.left, 1)
+            m.click(LMB, 1)
 
         if holding:
-          m.release(mouse.Button.left)
+          m.release(LMB)
         holding = False
         draging = False
 
@@ -193,7 +195,7 @@ def TouchscreenAsTouchpad():
           
           if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > shortPressSeconds):
             draging = True
-            m.press(mouse.Button.left)
+            m.press(LMB)
 
           hasMovedAfterPress = True
           m.move(0,-diffY*movementScale)
@@ -207,7 +209,7 @@ def TouchscreenAsTouchpad():
           
           if not hasMovedAfterPress and leftDragEnabled and (timeElapsed > shortPressSeconds):
             draging = True
-            m.press(mouse.Button.left)
+            m.press(LMB)
 
           hasMovedAfterPress = True
           m.move(diffX*movementScale, 0)
@@ -215,11 +217,5 @@ def TouchscreenAsTouchpad():
 try:
   TouchscreenAsTouchpad()
 except KeyboardInterrupt:
-    EnableTouchscreen()
-raise
-
-
-import atexit
-
-
-atexit.register(EnableTouchscreen)
+  #ignore CTRL+C
+  pass

@@ -52,12 +52,13 @@ Then kill script if you want to restore default behavior
 
 ## Config
 
-```options:
+```
   -h, --help            show this help message and exit
   -s seconds, --shortPressSeconds seconds
                         Time required to activate Short Press action in seconds. (default: 0.2)
   -l seconds, --longPressSeconds seconds
                         Time required to activate Long Press action in seconds. (default: 0.4)
+  -M, --mirrorButtons   Switches LMB and RMB behavior (default: False)    
   -D, --disableDrag     Disables LMB drag mode which occurs after LMB has been pressed for shortPressSeconds. (default: False)
   -L {OnHold,OnRelease}, --leftClickMode {OnHold,OnRelease}
                         Controlls whether LMB click occurs after timer or after releasing finger. (default: OnRelease)
