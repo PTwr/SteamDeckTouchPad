@@ -50,7 +50,7 @@ Just run it:
 
 Then kill script if you want to restore default behavior
 
-## Config
+## Command line parameters
 
 ```
   -h, --help            show this help message and exit
@@ -71,27 +71,15 @@ Then kill script if you want to restore default behavior
   -T prefix, --touchscreenDeviceNamePrefix prefix
                         Prefix for touchscreen device to query /dev/input/event* for. (default: FTS3528)
   -P suffix, --penDeviceNameSuffix suffix
-                        Suffix for touchscreen pen device to ignore while querying /dev/input/event*. (default: UNKNOWN)```
+                        Suffix for touchscreen pen device to ignore while querying /dev/input/event*. (default: UNKNOWN)
+```
 
+# Requirements
 
-# Overriding default touchscreen handling
-
-Script does it automatically, but just in case its good to know how to do it manually
-
-Disable default handler
-
-`xinput disable "FTS3528:00 2808:1015"`
-
-Enable default handler
-
-`xinput ensable "FTS3528:00 2808:1015"`
-
-Requirements
 - [python3](https://wiki.archlinux.org/title/Python) 'cos thats what this is written in (`pacman -S python`)
 - [pip](https://wiki.archlinux.org/title/Xinput) to install python packages (`pacman -S python-pip`)
 - [evdev](https://github.com/gvalkov/python-evdev) to read raw touchscreen events (`pip evdev`)
 - [pynput](https://github.com/moses-palmer/pynput) to simulate mouse events (`pip pynput`)
-- [xinput](https://wiki.archlinux.org/title/Xinput) for troubleshooting and optional automation (`pacman -S xinput`)
 
 If script is ran as superuser (`sudo`) then python packages will need to be installed as such as well.
 
